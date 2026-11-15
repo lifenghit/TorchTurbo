@@ -61,6 +61,8 @@ class MoEConfig:
     moe_router_enable_expert_bias: bool = False
     """The type of token dispatcher to use."""
     moe_token_dispatcher_type: str = "alltoall"
+    """Use the fully fused dispatch, expert MLP, and combine implementation."""
+    fused_reg: bool = False
     """Apply probabilities to expert inputs instead of activations before FC2."""
     moe_apply_probs_on_input: bool = False
     """Per-layer swiglu limit for clamping gate/up values in SwiGLU activation."""

@@ -156,6 +156,27 @@ class MoELayer(BaseMoELayer):
         )
         logits = logits.view(-1, logits.shape[-1])
 
+        if self.config.fused_reg:
+            from .mega_moe_reg import fused_reg_moe
+
+            output = fused_reg_moe(
+                hidden_states.view(-1, hidden_states.shape[-1]),
+                expert_indices,
+                probs.gather(-1, expert_indices.long()),
+                self.experts,
+                self.token_dispatcher.ep_group,
+                self.config,
+            ).view(hidden_states.shape).to(hidden_states.dtype)
+            if self.shared_expert is not None:
+                shared_expert_output = self.shared_expert(hidden_states)
+                shared_expert_output = (
+                    F.sigmoid(self.shared_expert_gate(hidden_states)) * shared_expert_output
+                )
+                output = output + shared_expert_output
+            if self.shared_experts is not None:
+                output = output + self.shared_experts(hidden_states)
+            return output, logits
+
         dispatcher = self.token_dispatcher
         # Reuse stage variables so completed layouts are not kept alive here.
         expert_tokens, expert_probs = dispatcher.dispatch_preprocess(
